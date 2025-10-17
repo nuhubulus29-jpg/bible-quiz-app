@@ -1,2 +1,1 @@
-# bible-quiz-app
-A friendly Bible quiz web 
+bible_quiz.html
