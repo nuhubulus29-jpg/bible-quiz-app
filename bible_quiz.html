@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Bible Challenge</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Import Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f7f7;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 1rem;
+        }
+        .quiz-container {
+            max-width: 600px;
+            width: 100%;
+            background-color: #ffffff;
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+        }
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            transition: all 0.2s;
+            cursor: pointer;
+            box-shadow: 0 4px #10b981; /* Default shadow */
+        }
+        .btn-primary {
+            background-color: #10b981; /* Emerald 500 */
+            color: white;
+            border: none;
+        }
+        .btn-primary:hover {
+            background-color: #059669; /* Emerald 600 */
+            box-shadow: 0 2px #059669; 
+            transform: translateY(2px);
+        }
+        .btn-secondary {
+            background-color: #f3f4f6; /* Gray 100 */
+            color: #1f2937; /* Gray 800 */
+            border: 1px solid #d1d5db; /* Gray 300 */
+            box-shadow: 0 4px #9ca3af;
+        }
+        .btn-secondary:hover {
+            background-color: #e5e7eb;
+            box-shadow: 0 2px #6b7280;
+            transform: translateY(2px);
+        }
+        .answer-btn {
+            width: 100%;
+            margin-bottom: 0.75rem;
+            text-align: left;
+            padding: 1rem;
+            background-color: #f9fafb;
+            border: 2px solid #e5e7eb;
+            color: #1f2937;
+            transition: all 0.2s;
+            border-radius: 0.75rem;
+        }
+        .answer-btn:hover:not(.correct):not(.incorrect) {
+            background-color: #eff6ff; /* Blue 50 */
+            border-color: #93c5fd; /* Blue 300 */
+        }
+        .answer-btn.selected {
+            border-width: 3px;
+        }
+        .answer-btn.correct {
+            background-color: #d1fae5; /* Green 100 */
+            border-color: #10b981; /* Emerald 500 */
+            color: #065f46; /* Green 800 */
+            font-weight: 600;
+        }
+        .answer-btn.incorrect {
+            background-color: #fee2e2; /* Red 100 */
+            border-color: #ef4444; /* Red 500 */
+            color: #991b1b; /* Red 800 */
+            font-weight: 600;
+        }
+        .leaderboard-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .leaderboard-item:last-child {
+            border-bottom: none;
+        }
+        .leaderboard-rank {
+            width: 2rem;
+            text-align: center;
+            font-weight: 800;
+            color: #4b5563;
+        }
+        /* Mobile adjustments for better spacing */
+        @media (max-width: 640px) {
+            .quiz-container {
+                padding: 1rem;
+                margin-top: 2rem;
+                margin-bottom: 2rem;
+                border-radius: 1rem;
+            }
+            .btn {
+                width: 100%;
+                margin-top: 0.5rem;
+            }
+        }
+        /* Loading overlay styles */
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #ffffff;
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.5s ease-in-out;
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #10b981;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="opacity-100">
+        <div class="flex flex-col items-center">
+            <div class="spinner mb-3"></div>
+            <p class="text-gray-600 font-semibold">Loading App and Authenticating...</p>
+        </div>
+    </div>
+    
+    <div class="quiz-container">
+        <h1 class="text-3xl font-extrabold text-gray-900 mb-6 text-center">
+            <i class="fas fa-bible text-emerald-500 mr-2"></i> The Bible Challenge
+        </h1>
+
+        <!-- Score and Level Display -->
+        <div class="flex justify-between items-center bg-emerald-50 p-3 rounded-xl mb-4 shadow-inner">
+            <div class="text-sm font-semibold text-emerald-700">
+                <p>Score: <span id="current-score">0</span> / <span id="total-questions">0</span></p>
+            </div>
+            <div class="text-sm font-semibold text-emerald-700">
+                <p>Level: <span id="current-level">Beginner</span></p>
+            </div>
+        </div>
+        
+        <!-- Main Quiz View (Default) -->
+        <div id="quiz-view" class="space-y-4">
+            <!-- Question area -->
+            <p id="question-text" class="text-xl font-semibold text-gray-800 p-4 bg-gray-50 rounded-lg shadow-sm">
+                Loading first question...
+            </p>
+
+            <!-- Answer Buttons -->
+            <div id="answers-container">
+                <!-- Buttons will be injected here -->
+            </div>
+
+            <div class="flex flex-col sm:flex-row justify-between items-center pt-4 border-t border-gray-100">
+                <p id="feedback-text" class="text-sm font-medium text-gray-600 mb-4 sm:mb-0">Select an answer above.</p>
+                <button id="next-button" class="btn btn-primary" disabled>
+                    Next Question
+                </button>
+            </div>
+        </div>
+
+        <!-- Leaderboard View (Hidden by default) -->
+        <div id="leaderboard-view" class="hidden">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4 text-center">Global Leaderboard</h2>
+            <div id="leaderboard-list" class="bg-gray-50 rounded-xl p-3 shadow-inner max-h-96 overflow-y-auto">
+                <!-- Leaderboard data will be inserted here -->
+                <p class="text-center text-gray-500">Loading scores...</p>
+            </div>
+            <p class="text-xs text-gray-500 mt-2 text-center">Your User ID: <span id="user-id-display" class="font-mono">Loading...</span></p>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="mt-8 pt-4 border-t border-gray-200 flex justify-center space-x-4">
+            <button id="nav-quiz" class="btn btn-secondary flex items-center shadow-none hover:shadow-none" data-view="quiz-view">
+                <i class="fas fa-question-circle mr-2"></i> Quiz
+            </button>
+            <button id="nav-leaderboard" class="btn btn-secondary flex items-center shadow-none hover:shadow-none" data-view="leaderboard-view">
+                <i class="fas fa-trophy mr-2"></i> Leaderboard
+            </button>
+        </div>
+
+        <!-- Simple Modal for Confirmation/Alerts -->
+        <div id="modal-backdrop" class="fixed inset-0 bg-gray-900 bg-opacity-75 hidden flex items-center justify-center z-50">
+            <div id="modal-content" class="bg-white p-6 rounded-xl shadow-2xl max-w-sm w-full transform transition-all duration-300 scale-95 opacity-0">
+                <h3 id="modal-title" class="text-xl font-bold text-gray-800 mb-3"></h3>
+                <p id="modal-message" class="text-gray-600 mb-6"></p>
+                <div id="modal-actions" class="flex justify-end space-x-3">
+                    <button id="modal-cancel" class="btn btn-secondary text-sm">Cancel</button>
+                    <button id="modal-confirm" class="btn btn-primary text-sm">Confirm</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script type="module">
+        // Import necessary Firebase functions
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, query, limit, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+
+        // --- FIREBASE INITIALIZATION ---
+
+        // YOUR PUBLIC CONFIGURATION IS NOW EMBEDDED HERE
+        const FIREBASE_CONFIG_PUBLIC = {
+            apiKey: "AIzaSyAIcaFbheBE5bg3sBT62TeL-KIwQ5LH2Pk",
+            authDomain: "free-project-c465a.firebaseapp.com",
+            projectId: "free-project-c465a",
+            storageBucket: "free-project-c465a.firebasestorage.app",
+            messagingSenderId: "109032325965",
+            appId: "1:109032325965:web:05c74353df52fe7d34ad04",
+            measurementId: "G-L5C53RQF7T"
+        };
+
+        const firebaseConfig = FIREBASE_CONFIG_PUBLIC;
+        // Use a fixed identifier for the database path since we are now public
+        const appId = 'bible-quiz-public-v1';
+
+
+        // --- GLOBAL VARIABLES & STATE ---
+        let app, db, auth;
+        let currentUserId = null;
+        let isAuthReady = false;
+        let userHighScore = 0;
+        let userTotalQuestions = 0;
+        let currentLevel = "Beginner";
+
+        let currentQuestionIndex = 0;
+        let questions = [];
+        let isAnswered = false;
+        let selectedAnswer = null;
+
+        // --- DOM REFERENCES ---
+        const questionText = document.getElementById('question-text');
+        const answersContainer = document.getElementById('answers-container');
+        const nextButton = document.getElementById('next-button');
+        const feedbackText = document.getElementById('feedback-text');
+        const currentScoreSpan = document.getElementById('current-score');
+        const totalQuestionsSpan = document.getElementById('total-questions');
+        const currentLevelSpan = document.getElementById('current-level');
+        const leaderboardList = document.getElementById('leaderboard-list');
+        const quizView = document.getElementById('quiz-view');
+        const leaderboardView = document.getElementById('leaderboard-view');
+        const navQuizButton = document.getElementById('nav-quiz');
+        const navLeaderboardButton = document.getElementById('nav-leaderboard');
+        const modalBackdrop = document.getElementById('modal-backdrop');
+        const modalContent = document.getElementById('modal-content');
+        const modalTitle = document.getElementById('modal-title');
+        const modalMessage = document.getElementById('modal-message');
+        const modalConfirm = document.getElementById('modal-confirm');
+        const modalCancel = document.getElementById('modal-cancel');
+
+
+        // --- QUIZ DATA ---
+        // Bible Quiz Questions - stored in memory for simple retrieval
+        const QUIZ_DATA = [
+            {
+                question: "Who led the Israelites out of slavery in Egypt?",
+                options: ["Abraham", "Moses", "Joseph", "David"],
+                answer: "Moses"
+            },
+            {
+                question: "What is the first book of the New Testament?",
+                options: ["Mark", "Luke", "Matthew", "John"],
+                answer: "Matthew"
+            },
+            {
+                question: "In what city was Jesus born?",
+                options: ["Nazareth", "Jerusalem", "Bethlehem", "Galilee"],
+                answer: "Bethlehem"
+            },
+            {
+                question: "How many days and nights did it rain during the Great Flood?",
+                options: ["7 days and 7 nights", "40 days and 40 nights", "150 days and 150 nights", "3 days and 3 nights"],
+                answer: "40 days and 40 nights"
+            },
+            {
+                question: "Who was swallowed by a great fish?",
+                options: ["Elijah", "Jonah", "Peter", "Paul"],
+                answer: "Jonah"
+            },
+            {
+                question: "What was the name of the garden where Adam and Eve lived?",
+                options: ["Eden", "Gethsemane", "Babylon", "Cana"],
+                answer: "Eden"
+            },
+            {
+                question: "Which disciple betrayed Jesus?",
+                options: ["Peter", "Thomas", "Judas Iscariot", "Andrew"],
+                answer: "Judas Iscariot"
+            },
+            {
+                question: "What animal spoke to Balaam?",
+                options: ["Donkey", "Lion", "Serpent", "Raven"],
+                answer: "Donkey"
+            },
+            {
+                question: "Who was the mother of Jesus?",
+                options: ["Elizabeth", "Mary Magdalene", "Martha", "Mary"],
+                answer: "Mary"
+            },
+            {
+                question: "What giant did David defeat?",
+                options: ["Goliath", "Samson", "Nimrod", "Cain"],
+                answer: "Goliath"
+            }
+        ];
+        
+        // Shuffle and initialize the questions once
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+        shuffleArray(QUIZ_DATA);
+        questions = QUIZ_DATA;
+
+
+        // --- MODAL/ALERT FUNCTIONS ---
+        // Simple, non-blocking modal replacement for alert()
+        function showModal(title, message, isConfirm = false) {
+            return new Promise(resolve => {
+                modalTitle.textContent = title;
+                modalMessage.textContent = message;
+
+                if (isConfirm) {
+                    modalCancel.classList.remove('hidden');
+                    modalConfirm.textContent = "Yes";
+                    modalCancel.onclick = () => {
+                        closeModal();
+                        resolve(false);
+                    };
+                    modalConfirm.onclick = () => {
+                        closeModal();
+                        resolve(true);
+                    };
+                } else {
+                    modalCancel.classList.add('hidden');
+                    modalConfirm.textContent = "OK";
+                    modalConfirm.onclick = () => {
+                        closeModal();
+                        resolve(true);
+                    };
+                }
+
+                modalBackdrop.classList.remove('hidden');
+                setTimeout(() => {
+                    modalContent.classList.remove('opacity-0', 'scale-95');
+                    modalContent.classList.add('opacity-100', 'scale-100');
+                }, 10);
+            });
+        }
+
+        function closeModal() {
+            modalContent.classList.remove('opacity-100', 'scale-100');
+            modalContent.classList.add('opacity-0', 'scale-95');
+            setTimeout(() => {
+                modalBackdrop.classList.add('hidden');
+            }, 300);
+        }
+
+
+        // --- CORE QUIZ LOGIC ---
+
+        function renderQuestion() {
+            if (currentQuestionIndex >= questions.length) {
+                // Quiz finished, show score
+                showModal("Quiz Finished!", `You completed the challenge! Your final score: ${userHighScore} out of ${questions.length}.`, false);
+                // Reset quiz for next round
+                currentQuestionIndex = 0;
+                shuffleArray(questions);
+            }
+
+            const q = questions[currentQuestionIndex];
+            questionText.textContent = `${currentQuestionIndex + 1}. ${q.question}`;
+            answersContainer.innerHTML = '';
+            feedbackText.textContent = "Select an answer above.";
+            nextButton.disabled = true;
+            isAnswered = false;
+            selectedAnswer = null;
+
+            shuffleArray(q.options).forEach(option => {
+                const button = document.createElement('button');
+                button.textContent = option;
+                button.classList.add('answer-btn');
+                button.setAttribute('data-answer', option);
+                button.onclick = () => handleAnswer(option, q.answer, button);
+                answersContainer.appendChild(button);
+            });
+        }
+
+        function handleAnswer(selected, correct, button) {
+            if (isAnswered) return;
+
+            isAnswered = true;
+            selectedAnswer = selected;
+            nextButton.disabled = false;
+            userTotalQuestions++;
+
+            Array.from(answersContainer.children).forEach(btn => {
+                btn.classList.remove('selected');
+                if (btn.getAttribute('data-answer') === selected) {
+                    btn.classList.add('selected');
+                }
+                
+                if (btn.getAttribute('data-answer') === correct) {
+                    btn.classList.add('correct');
+                } else if (btn.getAttribute('data-answer') === selected) {
+                    btn.classList.add('incorrect');
+                }
+            });
+
+            if (selected === correct) {
+                userHighScore++;
+                feedbackText.textContent = "Correct! Well done.";
+            } else {
+                feedbackText.textContent = `Incorrect. The correct answer was: ${correct}`;
+            }
+            
+            updateScoreDisplay();
+            updateLevel();
+            saveUserScore();
+            updateLeaderboardScore(); // Update leaderboard with new score
+        }
+
+        function updateScoreDisplay() {
+            currentScoreSpan.textContent = userHighScore;
+            totalQuestionsSpan.textContent = userTotalQuestions;
+        }
+
+        function updateLevel() {
+            let newLevel = "Beginner";
+            if (userTotalQuestions > 0) {
+                const percentage = (userHighScore / userTotalQuestions) * 100;
+                if (percentage >= 80 && userTotalQuestions >= 10) {
+                    newLevel = "Expert Scholar";
+                } else if (percentage >= 60 && userTotalQuestions >= 5) {
+                    newLevel = "Advanced Student";
+                } else if (percentage >= 40) {
+                    newLevel = "Intermediate Reader";
+                }
+            }
+            currentLevel = newLevel;
+            currentLevelSpan.textContent = currentLevel;
+        }
+
+        nextButton.addEventListener('click', () => {
+            if (isAnswered) {
+                currentQuestionIndex++;
+                renderQuestion();
+            }
+        });
+
+
+        // --- FIREBASE FUNCTIONS ---
+        async function setupFirebase() {
+            try {
+                // Ensure the check for __initial_auth_token is removed since we won't have it publicly
+                if (!firebaseConfig.apiKey) {
+                    console.error("Firebase API Key is missing.");
+                    throw new Error("Missing Firebase configuration.");
+                }
+
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                
+                // Set Firebase log level for debugging
+                setLogLevel('debug'); 
+
+                // Set up Auth Listener and sign in
+     
